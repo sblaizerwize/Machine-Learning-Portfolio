@@ -9,9 +9,20 @@ edit_uri: edit/main/docs
 
 nav:
   - Home: index.md
+  - Machine Learning:
+      - machine-learning/classification-splice-junction.ipynb
+      - machine-learning/used-car-predictions-for-kagglex-competition.ipynb
+  - Natural Language Processing: 
+      - natural-language-processing/a-journey-through-text-data-competitions.ipynb
+      - natural-language-processing/analyzing-movie-genre-predictions-using-transformers.ipynb
+      - natural-language-processing/higher_order_huggingface_models_for_movie_predictions.ipynb
+      - natural-language-processing/in-depth-analysis-of-kaggle-and-arxiv-datasets.ipynb
+
 
 theme:
   name: "material"
+  toc:
+    max_level: 3  # Show H1, H2, H3, and H4 levels
   palette:
     - media: "(prefers-color-scheme)"
       primary: custom
@@ -42,10 +53,14 @@ theme:
     - content.code.select
     - navigation.path
     - navigation.indexes
-    - navigation.sections
     - navigation.tracking
-    - toc.follow
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+  language: en 
 
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
 - attr_list
@@ -69,3 +84,7 @@ markdown_extensions:
 - pymdownx.tasklist:
     custom_checkbox: true
 
+plugins:
+  - search
+  - mkdocs-jupyter
+  - include-markdown 
