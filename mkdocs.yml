@@ -1,5 +1,5 @@
 site_name: ""
-site_description: My Portoflio in ML and Bioinformatics
+site_description: My Professional Portoflio 
 site_author: Salomon Marquez
 strict: true
 
@@ -102,4 +102,4 @@ plugins:
   - mkdocs-jupyter
   - include-markdown 
 
-copyright: 2025 Salomon Marquez
+copyright: 2025 - Salomon Marquez
