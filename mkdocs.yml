@@ -22,9 +22,6 @@ nav:
   - Technical Writing:
       - technical-writing/index.md
 
-
-
-
 theme:
   name: "material"
   toc:
@@ -63,10 +60,20 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.top
+    - navigation.footer
   language: en 
 
 extra_css:
   - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sblaizerwize
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/sblaizer/
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:phd.smarquez@gmail.com
 
 markdown_extensions:
 - attr_list
@@ -94,3 +101,5 @@ plugins:
   - search
   - mkdocs-jupyter
   - include-markdown 
+
+copyright: 2025 Salomon Marquez
