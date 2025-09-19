@@ -3,8 +3,8 @@ site_description: My Portoflio in ML and Bioinformatics
 site_author: Salomon Marquez
 strict: true
 
-repo_name: sblaizerwize/Machine-Learning-Portfolio
-repo_url: https://github.com/sblaizerwize/Machine-Learning-Portfolio
+repo_name: sblaizerwize/My-Professional-Portfolio
+repo_url: https://sblaizerwize.github.io/My-Professional-Portfolio/
 edit_uri: edit/main/docs
 
 nav:
