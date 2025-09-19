@@ -14,9 +14,9 @@ nav:
       - machine-learning/used-car-predictions-for-kagglex-competition.ipynb
   - Natural Language Processing: 
       - natural-language-processing/a-journey-through-text-data-competitions.ipynb
+      - natural-language-processing/in-depth-analysis-of-kaggle-and-arxiv-datasets.ipynb
       - natural-language-processing/analyzing-movie-genre-predictions-using-transformers.ipynb
       - natural-language-processing/higher_order_huggingface_models_for_movie_predictions.ipynb
-      - natural-language-processing/in-depth-analysis-of-kaggle-and-arxiv-datasets.ipynb
 
 
 theme:
