@@ -1,3 +1,5 @@
-This repository contains several projects I have worked on during my journey of studying Machine Learning.
+# Welcome to My Portfolio 📚
 
-Check the portfolio at https://sblaizerwize.github.io/Machine-Learning-Portfolio/
+This repository hosts my professional portfolio, showcasing projects I have developed over recent years.
+
+Explore it at: https://sblaizerwize.github.io/My-Professional-Portfolio/
