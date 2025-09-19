@@ -9,6 +9,8 @@ edit_uri: edit/main/docs
 
 nav:
   - Home: index.md
+  - Bioinformatics:
+      - bioinformatics/nextflow-for-rnaseq-aws.md
   - Machine Learning:
       - machine-learning/classification-splice-junction.ipynb
       - machine-learning/used-car-predictions-for-kagglex-competition.ipynb
@@ -17,6 +19,10 @@ nav:
       - natural-language-processing/in-depth-analysis-of-kaggle-and-arxiv-datasets.ipynb
       - natural-language-processing/analyzing-movie-genre-predictions-using-transformers.ipynb
       - natural-language-processing/higher_order_huggingface_models_for_movie_predictions.ipynb
+  - Technical Writing:
+      - technical-writing/index.md
+
+
 
 
 theme:
