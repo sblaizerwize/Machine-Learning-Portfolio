@@ -1,0 +1,1018 @@
+---
+title: "PEC4 - Análisis de Datos en R"
+author: "Sefora Conti (scontico@uoc.edu) y Salomón Marquez (sblaizer@uoc.edu)"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    toc: true
+  html_document:
+    toc: true
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+# Hacer visible el código fuente de todos los chunks 
+knitr::opts_chunk$set(echo = TRUE) 
+
+# Establecer un mirror globar de R en caso de instalar paquetes y librerias
+options(repos = c(CRAN = "https://cloud.r-project.org"))  # Mirror global de R
+
+# Cargar módulos y librerías
+install.packages("skimr")
+install.packages("scales")
+install.packages("caret")
+install.packages("e1071")
+install.packages("dunn.test")
+library(dunn.test)
+library(skimr)
+library(survival)
+library(scales)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(caTools) 
+library(caret)
+library(e1071)
+```
+
+------------------------------------------------------------------------
+
+# Sección 1: Contexto y objetivo del estudio
+
+**Describe el ámbito del estudio, el objetivo general, y el conjunto de
+datos utilizado. Justifica por qué se eligieron esos datos y de dónde
+provienen. Menciona si hay restricciones de uso o privacidad.**
+
+El cáncer gastrointestinal agrupa un conjunto de neoplasias malignas y
+heterogeneas que afectan distintos órganos del aparato digestivo,
+incluyendo el tracto biliar, el estómago, el páncreas, el colon y el
+recto. Estas enfermedades representan una proporción significativa de la
+carga global del cáncer y presentan, en muchos casos, pronósticos
+desfavorables (1, 2). La identificación de factores clínico-patológicos
+que influyen en la supervivencia global de los pacientes es fundamental
+para mejorar la estratificación de riesgo, la toma de decisiones
+terapéuticas y el diseño de estrategias de seguimiento personalizadas.
+
+En los últimos años, se han desarrollado diversos enfoques para mejorar
+esta predicción, incluyendo modelos in vitro (como los organoides
+derivados de pacientes)(3–5), modelos in vivo (por ejemplo, xenoinjertos
+en modelos animales)(6) y estrategias in silico(7–9). Estas últimas se
+apoyan en distintos tipos de datos, tales como imágenes
+histopatológicas(10), resonancias magnéticas(11) o información clínica,
+con el fin de generar herramientas que ayuden a personalizar el
+tratamiento oncológico.
+
+En el presente trabajo se propone analizar un conjunto de datos clínicos
+disponibles públicamente a través del repositorio de
+[TCGA](https://portal.gdc.cancer.gov/) (The Cancer Genome Atlas
+Program), con el objetivo de identificar posibles factores clínicos
+asociados a la supervivencia de pacientes con tumores
+gastrointestinales. Este análisis explorará posibles correlaciones entre
+variables patológicas y demográficas sobre la supervivencia global de
+los pacientes, con el fin de aportar evidencia que permita mejorar la
+estratificación de pacientes.
+
+Los datos utilizados son de acceso libre, están anonimizados y su uso
+con fines académicos está permitido según las políticas del [GDC Data
+Portal](https://gdc.cancer.gov/about-gdc/gdc-policies).
+
+**Bibliografía:**
+
+1.  M. F. Bijlsma, A. Sadanandam, P. Tan, L. Vermeulen, Molecular
+    subtypes in cancers of the gastrointestinal tract. Nat Rev
+    Gastroenterol Hepatol 14, 333–342 (2017).
+2.  R. L. Siegel, K. D. Miller, H. E. Fuchs, A. Jemal, Cancer
+    statistics, 2022. CA: A Cancer Journal for Clinicians 72, 7–33
+    (2022).
+3.  J. Drost, H. Clevers, Organoids in cancer research. Nat Rev Cancer
+    18, 407–418 (2018).
+4.  P. W. Nagle, J. Th. M. Plukker, C. T. Muijs, P. van Luijk, R. P.
+    Coppes, Patient-derived tumor organoids for prediction of cancer
+    treatment response. Seminars in Cancer Biology 53, 258–264 (2018).
+5.  C. A. Pasch, P. F. Favreau, A. E. Yueh, C. P. Babiarz, A. A.
+    Gillette, J. T. Sharick, M. R. Karim, K. P. Nickel, A. K.
+    DeZeeuw, C. M. Sprackling, P. B. Emmerich, R. A. DeStefanis, R. T.
+    Pitera, S. N. Payne, D. P. Korkos, L. Clipson, C. M. Walsh, D.
+    Miller, E. H. Carchman, M. E. Burkard, K. K. Lemmon, K. A.
+    Matkowskyj, M. A. Newton, I. M. Ong, M. F. Bassetti, R. J.
+    Kimple, M. C. Skala, D. A. Deming, Patient-Derived Cancer Organoid
+    Cultures to Predict Sensitivity to Chemotherapy and Radiation.
+    Clinical Cancer Research 25, 5376–5387 (2019).
+6.  E. R. Zanella, E. Grassi, L. Trusolino, Towards precision oncology
+    with patient-derived xenografts. Nat Rev Clin Oncol 19, 719–732
+    (2022).
+7.  X. Sun, B. Hu, Mathematical modeling and computational prediction of
+    cancer drug resistance. Briefings in Bioinformatics 19, 1382–1399
+    (2018).
+8.  E. J. Mucaki, J. Z. L. Zhao, D. J. Lizotte, P. K. Rogan, Predicting
+    responses to platin chemotherapy agents with biochemically-inspired
+    machine learning. Sig Transduct Target Ther 4, 1–12 (2019).
+9.  C. Yang, X. Huang, Y. Li, J. Chen, Y. Lv, S. Dai, Prognosis and
+    personalized treatment prediction in TP53-mutant hepatocellular
+    carcinoma: an in silico strategy towards precision oncology.
+    Briefings in Bioinformatics 22, bbaa164 (2021).
+10. F. Li, Y. Yang, Y. Wei, P. He, J. Chen, Z. Zheng, H. Bu, Deep
+    learning-based predictive biomarker of pathological complete
+    response to neoadjuvant chemotherapy from histological images in
+    breast cancer. J Transl Med 19, 348 (2021). 11. Z. Liu, Z. Li, J.
+    Qu, R. Zhang, X. Zhou, L. Li, K. Sun, Z. Tang, H. Jiang, H. Li, Q.
+    Xiong, Y. Ding, X. Zhao, K. Wang, Z. Liu, J. Tian, Radiomics of
+    Multiparametric MRI for Pretreatment Prediction of Pathologic
+    Complete Response to Neoadjuvant Chemotherapy in Breast Cancer: A
+    Multicenter Study. Clinical Cancer Research 25, 3538–3547 (2019).
+
+------------------------------------------------------------------------
+
+# Sección 2: Prospección y preparación de los datos
+
+## 2.1 Exploración inicial del dataset
+
+La siguiente tabla muestra una descripción general del dataset TCGA. En
+las siguientes secciones se muestra cómo se obtuvo esta información.
+
+| Puntos clave | Descripción |
+|-----------------------|-------------------------------------------------|
+| **Tipo de archivo y datos** | El conjunto de datos fue importado desde un archivo .csv delimitado por punto y coma, que contiene información clínica y patológica de pacientes oncológicos. Incluye variables como edad, tipo de cáncer, presencia de invasión venosa o perineural, inestabilidad de microsatélites, y variables de seguimiento como días hasta el último contacto o la muerte. Debido a su origen combinado (diferentes fuentes clínicas dentro de TCGA), el conjunto de datos requiere un preprocesamiento considerable para hacerlo apto para el análisis. |
+| **Variables disponibles** | Variables categóricas (por ejemplo, tipo de cáncer, sexo) y variables continuas (edad, peso, altura, etc.). |
+| **Dimensiones del dataset** | El conjunto de datos incluye 154 variables clínicas de 1.308 pacientes de las cuáles hemos elegido 34 variables que consideramos son las más relevantes para el objetivo de nuestro estudio. |
+| **Detección de valores nulos** | Hay 135.291 valores nulos en el conjunto de datos original y 21.007 en el nuevo conjunto de datos (con las 34 variables seleccionadas). |
+| **Inconsistencias** | Se detectaron inconsistencias típicas en datos clínicos, como discordancias entre el estado vital y los días de seguimiento o muerte. Para poder calcular la supervivencia global, fue necesario crear una nueva variable de tiempo de supervivencia (`os_time`) combinando `days_to_death` y `days_to_last_followup`, así como una variable binaria de evento (`os_event`). |
+
+```{r}
+# Cargar el conjunto de datos (csv)
+df_TCGA <- read.csv("Combined_TCGA_Clinical_300525.csv",header=TRUE, sep = ";")
+# Visualizar registros
+head(df_TCGA[,1:5], n=3) #mostramos los primeros 3 registros
+tail(df_TCGA[,1:5], n=3) #mostramos los ultimos 3 registros
+
+# Obtener el número de variables y sus nombres
+dim(df_TCGA) #dimensiones de df
+names(df_TCGA) #nombres de las variables
+
+# Visualizar estructura del conjunto de datos y un resumen estadístico
+str(df_TCGA)
+summary(df_TCGA)
+
+# Verificar valores nulos
+print(table(is.na(df_TCGA)))
+
+# Verificar valores nulos por columnas
+# print(colSums(is.na(df_TCGA)))
+
+# Verificar valores nulos por filas
+# print(rowSums(is.na(df_TCGA)))
+```
+
+Identificamos la columna que sirva con ID principal de cada registro del
+dataset
+
+```{r}
+# Visualizar los primeros 5 elementos de las siguientes columnas tipo ID
+head(df_TCGA[,c("bcr_patient_barcode", "bcr_patient_uuid", "patient_id")], 5)
+```
+
+En general observamos tres diferentes identificadores: el TCGA barcode
+completo, UUID (Universal Unique Identifier) y código interno de
+paciente, respectivamente. En este proyecto utilizaremos el primero de
+ellos pues es el identificador estándar a nivel de paciente en TCGA.
+Además observamos que también contiene el código interno de paciente.
+
+```{r}
+# Crear un subconjunto del dataset TCGA con variables relevantes desde una perspectiva oncologica
+df_gastro <-subset(df_TCGA, select = c(bcr_patient_barcode, tumor_tissue_site, histological_type,
+                               gender, vital_status, days_to_death, days_to_last_followup,
+                               tissue_source_site,
+                               age_at_initial_pathologic_diagnosis, person_neoplasm_cancer_status,
+                               weight, height, residual_tumor, anatomic_neoplasm_subdivision,
+                               number_of_lymphnodes_positive_by_he, number_of_lymphnodes_positive_by_ihc,
+                               preoperative_pretreatment_cea_level, non_nodal_tumor_deposits,
+                               circumferential_resection_margin, venous_invasion, lymphatic_invasion,
+                               perineural_invasion_present, microsatellite_instability,
+                               number_of_loci_tested, number_of_abnormal_loci, kras_gene_analysis_performed,
+                               kras_mutation_found, kras_mutation_codon, braf_gene_analysis_performed,
+                               braf_gene_analysis_result, synchronous_colon_cancer_present,
+                               stage_event_pathologic_stage, stage_event_tnm_categories, cancer_type))
+```
+
+Visualizamos con mayor detalle el TCGA dataset personalizado con las 34
+variables de interés.
+
+```{r}
+# Usar función skimr()
+skim(df_gastro)
+```
+
+```{r}
+# Obtener el número de variables y sus nombres
+dim(df_gastro) 
+
+# Verificar valores nulos
+print(table(is.na(df_gastro)))
+```
+
+**Transformación de los datos**
+
+La primera transformación al dataframe `df_gastro` consiste en la
+creación de una nueva variable de supervivencia de los pacientes
+`os_time` para identificar los que siguen vivos y los que no. Veamos,
+
+```{r}
+# Visualizar algunas variables relacionadas a la supervivencia de pacientes
+df_gastro[1:10, c("vital_status", "days_to_last_followup", "days_to_death")]
+```
+
+donde,
+
+-   **vital_status**: estado de vida del paciente al momento del cierre
+    del seguimiento
+-   **days_to_last_followup**: número de días desde el diagnóstico hasta
+    la última vez que se tuvo contacto clínico con el paciente
+-   **days_to_death**: número de días desde el diagnóstico hasta la
+    muerte del paciente
+
+La variable `os_time` es una combinación de las variables
+`days_to_last_followup` y `days_to_death` donde se imputan los valores
+`NA` de `days_to_death` por aquellos en `days_to_last_followup`.
+
+```{r}
+# Crear la variable de supervivencia de pacientes (los que siguen vivos y los que no)
+df_gastro$os_time <- ifelse(
+  !is.na(df_gastro$days_to_death), #si hay un valor que no es nulo en la variable "days_to_death"
+  df_gastro$days_to_death,
+  df_gastro$days_to_last_followup #en caso contrario, el valor es lo que aparece en la columna "days_to_last_followup"
+)
+
+# Transformar los valores infinitos de os_time en NA
+df_gastro$os_time[is.infinite(df_gastro$os_time)] <- NA
+```
+
+En los datos clínicos de TCGA, en ocasiones la variable `vital_status` no
+se informa o se analiza incorrectamente, pero si los datos de
+seguimiento del paciente están presentes, se puede asumir que el
+paciente estaba vivo en su último seguimiento. Este es el supuesto
+tomado en cuenta en este proyecto, aunque en un enfoque más conservador,
+la estrategia sería descartar a estos pacientes.
+
+```{r}
+# Asignar "Alive" a los NAs de vital_status si la variable "days_to_last_followup" tiene un valor valido.
+df_gastro$vital_status[is.na(df_gastro$vital_status) 
+                    & !is.na(df_gastro$days_to_last_followup)] <- "Alive"  
+
+# Definir os_event, si el paciente está vivo con 0, caso contrario con 1. 
+df_gastro$os_event <- ifelse(df_gastro$vital_status == "Dead", 1, 0) 
+
+# Eliminar la especificación TCGA del tipo de cáncer para simplificar.
+df_gastro$cancer_type <-gsub("TCGA-","", df_gastro$cancer_type) #ref. The R book page 124
+
+# Eliminar la especificación Stage para simplificar.
+df_gastro$stage_event_pathologic_stage <-gsub("Stage ","", df_gastro$stage_event_pathologic_stage) #ref. The R book page 124
+
+# Estructura del conjunto de datos y resumen estadístico
+str(df_gastro)
+```
+
+## 2.2 Preguntas objetivo
+
+1.  ¿Qué correlación existe entre el estadio patológico del tumor en el momento del diagnóstico y la supervivencia?
+
+2.  ¿Qué diferencias en supervivencia se observan según el género y la edad de los pacientes?
+
+3.  ¿Existen diferencias significativas en la supervivencia según el tipo de cáncer gastrointestinal?
+
+4.  ¿Cuál es el impacto de la invasión venosa, linfática o perineural sobre la supervivencia?
+
+------------------------------------------------------------------------
+
+# Sección 3: Análisis exploratorio de los datos
+
+## 3.1 Estadística descriptiva y visualización
+
+En esta sección implementamos un análisis exploratorio y de
+visualización de datos con el objetivo de responder a las preguntas
+objetivo de la sección 2.2.
+
+```{r}
+# Convertir a factor las variables tipo `chr`
+df_gastro$gender<- factor(df_gastro$gender)
+df_gastro$residual_tumor<- factor(df_gastro$residual_tumor)
+df_gastro$venous_invasion<- factor(df_gastro$venous_invasion)
+df_gastro$lymphatic_invasion<- factor(df_gastro$lymphatic_invasion)
+df_gastro$perineural_invasion_present<- factor(df_gastro$perineural_invasion_present)
+df_gastro$microsatellite_instability<- factor(df_gastro$microsatellite_instability)
+df_gastro$kras_mutation_found<- factor(df_gastro$kras_mutation_found)
+df_gastro$stage_event_pathologic_stage<- factor(df_gastro$stage_event_pathologic_stage)
+df_gastro$cancer_type<- factor(df_gastro$cancer_type)
+```
+
+```{r}
+# Visualizar la distribucion de edades en los distintos tipos de cancer
+ggplot(data=subset(df_gastro, !is.na(age_at_initial_pathologic_diagnosis)), aes(x = cancer_type, y = age_at_initial_pathologic_diagnosis, fill = cancer_type))+  
+geom_boxplot(col = 'black')+
+  labs(title = "Edad Paciente al Momento del Diagnóstico", x ="Tipo de Cáncer", y = "Edad (años)") +
+  theme_minimal()+
+  scale_fill_brewer(palette="PRGn")+
+  theme(plot.title = element_text(size=16, color='Darkblue', face='bold', hjust = 0.5))
+```
+
+### Pregunta 1: ¿Qué correlación existe entre el estadio patológico del tumor en el momento del diagnóstico y la supervivencia?
+
+```{r}
+# Correlacion entre el estadio tumoral y la supervivencia de los pacientes
+ggplot(data=subset(df_gastro, !is.na(stage_event_pathologic_stage)), aes(x = stage_event_pathologic_stage, y = os_time, fill = stage_event_pathologic_stage))+  
+geom_boxplot(col = 'black')+
+  labs(title = "Supervivencia en función del Estadio Tumoral", x ="Estadio Tumoral", y = "Supervivencia (días)") +
+  theme_minimal()+
+  #scale_fill_brewer(palette="PRGn")+
+  theme(plot.title = element_text(size=16, color='Darkblue', face='bold', hjust = 0.5))
+```
+
+El gráfico de supervivencia en función de estadio tumoral muestra que la supervivencia disminuye progresivamente a medida que aumenta el estadio tumoral, tal como lo señalan Singh et. al (https://doi.org/10.5114/pg.2024.141834). De aquí la importancia crítica de realizar un diagnóstico precoz en pacientes oncológicos. Para aportar mayor respaldo estadístico a esta observación, sería necesario realizar un análisis más riguroso usando un modelo de riesgos proporcionales de Cox. Dicho análisis queda fuera del alcance de este proyecto.
+
+### Pregunta 2: ¿Existen diferencias significativas en la supervivencia según el tipo de cáncer gastrointestinal?
+
+```{r}
+# Supervivencia en función del tipo de cáncer 
+ggplot(data=subset(df_gastro, !is.na(os_time)), aes(x = cancer_type, y = os_time, fill = cancer_type))+ 
+geom_boxplot(col = 'black')+
+  labs(title = "Supervivencia en función del tipo de cáncer ", x ="Tipo Cáncer", y = "Superviviencia (días)") +
+  theme_minimal()+
+  #scale_fill_brewer(palette="RdBu")+
+  theme(plot.title = element_text(size=16, color='Darkblue', face='bold', hjust = 0.5))
+```
+
+El gráfico de supervivencia en función del tipo de cáncer que la supervivencia media esperada en pacientes con PAAD es inferior a la observada en otros tipos de cáncer, lo cual concuerda con la literatura de pacientes con adenocarcinoma ductal de páncreas (PDAC). Singh et. al (https://doi.org/10.5114/pg.2024.141834) señalan que los pacientes con PDAC presentan el peor pronóstico, con una tasa de supervivencia a cinco años que apenas alcanza el 12–13 %. Y que en cambio, otros tipos de cáncer gastrointestinal como el colorrectal, presentan un pronóstico más favorable, en parte gracias a los programas de detección precoz y al desarrollo de terapias más específicas y eficaces.
+
+Para identificar diferencias estadísticamente significativas entre tipos de cáncer y el tiempo de superviviencia de pacientes, se implementan a continuación las siguientes pruebas: test ANOVA, validación de supuestos de normalidad de residuos del test ANOVA, test Kruskal-Wallis y análisis de supervivencia Kaplan-Mier.  
+
+#### Test ANOVA
+
+A continuación, se implementará un test ANOVA asumiendo normalidad, posteriormente se evaluará la normalidad de los residuos del modelo con el propósito de analizar si hay diferencias estadísticamente significativas entre tipos de cáncer.  
+
+```{r}
+# Eliminar NAs en variables de interés y crear un nuevo dataframe 
+df_anova <- df_gastro[!is.na(df_gastro$os_time) & !is.na(df_gastro$cancer_type), ]
+
+# Implementar test ANOVA variables os_time y cancer_type 
+modelo_anova <- aov(os_time ~ cancer_type, data = df_anova)
+summary(modelo_anova)
+```
+De los resultados observamos que el valor-p es 3.12e-08 ($p < 0.05$), lo que indica que hay diferencias significativas entre al menos dos grupos. Además, el F-value es 10.36 (> 1), cuanto mayor sea este valor, mayor evidencia tenemos de diferencias significativas entre grupos. Dado que el ANOVA es significativo, a continuación identificaremos los grupos qué difieren entre sí con la prueba post-hoc TukeyHSD. 
+
+```{r}
+# Aplicar test TukeyHSD
+TukeyHSD(modelo_anova)
+```
+De los resultados obtenidos de la prueba post-hoc `TukeyHSD`, los p-valor ajustados 0.0000003, 0.0000559, 0.0089008, y 0.0188148 (todos ellos < 0.05) muestran que la mayor diferencia significativa está entre los grupos STAD-COAD, PAAD-COAD, STAD-READ y READ-PAAD, respectivamente. 
+
+#### Validación de supuestos de normalidad de residuos del modelo
+
+Para validar los resultados del ANOVA, verificaremos los siguientes supuestos: normalidad de residuos, homocedasticidad e independencia. 
+
+```{r}
+# Validar test ANOVA
+plot(modelo_anova)
+```
+
+**Normalidad**
+
+Observando la gráfica Q-Q residuals, residuos entre cuantiles (Quantile-Quantile), podemos
+comparar los cuantiles teóricos de una distribución normal con los
+cuantiles reales de los residuos del modelo. En nuestro caso, los puntos tienden a
+alinearse cerca de la línea diagonal, sobretodo en la parte intermedia. No obstante, hay evidencia de asimetría en la cola derecha donde se observa una curva en forma de "S". Este comportamiento puede afectar la validez de los p-valores y las comparaciones post-hoc. 
+
+**Homocedasticidad**
+
+El supuesto de homocedasticidad requiere que la varianza de los residuos sea constante para todos los valores ajustados del modelo para cada grupo. Del gráfico Scale-Location se observa que no hay una relación evidente entre los residuos y los valores ajustados (la media de cada grupo). La banda es casi horizontal y plana. Así que podemos asumir homogeneicidad de varianzas. 
+
+Algunas ideas para contestar esta pregunta fueron tomadas del post **ANOVA in R** sección [Another method to test normality and homogeneity](https://statsandr.com/blog/anova-in-r/#another-method-to-test-normality-and-homogeneity).
+
+**Independencia**
+
+Dado que los datos no son temporales, podemos asumir a priori que no hay autocorrelación. La independencia la asumimos por diseño. 
+
+#### Test Kruskal-Wallis
+
+
+Si asumimos que el supuesto de normalidad no se cumple, podemos aplicar las siguientes pruebas no parámetricas `Kruskal-Wallis` y prueba post-hoc `Dunn` para validar nuestros resultados. 
+
+```{r}
+# Aplicar test Kruskal-Wallis
+kruskal.test(os_time ~ cancer_type, data = df_anova)
+
+# Aplicar post-hoc test Dunn
+dunn.test(df_anova$os_time, df_anova$cancer_type, method = "bonferroni")
+```
+
+Las pruebas no paramétricas efectuadas confirman que los siguientes grupos tienen diferencias estadísticamente significativas: PAAD-COAD, READ-PAAD, STAD-COAD, y STAD-READ.
+
+#### Estudios de supervivencia (Kaplan-Meier) 
+
+```{r}
+# Implementar Kaplan-Meier por tipo de cancer
+# Crear objeto de supervivencia
+survival_obj <- Surv(time = df_gastro$os_time, event=df_gastro$os_event)
+
+# Ajustar el model Kaplan-Meier por género
+ajuste_cancer_type <- survfit(survival_obj ~ cancer_type, type="kaplan-meier", data=df_gastro)
+
+# Para evitar nombres arbitrarios para el tipo de cáncer necesitamos utilizar los nombres de grupo que figuran en los datos
+nombres_tipos <- names(ajuste_cancer_type$strata)
+
+# Visualizar gráfico
+plot(ajuste_cancer_type, ylab = "Probabilidad", xlab='Tiempo (días)',
+     mark.time = TRUE, col = hue_pal ()(length(nombres_tipos)), main= "Supervivencia en Función del Tipo de Cancer")
+
+legend("bottomleft", legend = nombres_tipos,
+       fill = hue_pal ()(length(nombres_tipos)), bty = "n")
+```
+
+```{r}
+# Comparamos la supervivencia entre categorías de tipo de cancer
+comparar_cancer_type<- survdiff(survival_obj ~ cancer_type, data=df_gastro)
+comparar_cancer_type
+```
+
+Los resultados obtenidos por las pruebas de supervivencia Kaplan-Mier muestran también diferencias significativas en la supervivencia según el tipo de cáncer gastrointestinal, con un valor de Chi-cuadrado de 111, 4 grados de libertad y un valor p inferior a 2e-16.
+
+Tal como se ha señalado previamente en la literatura, los pacientes con adenocarcinoma de páncreas (PAAC) y colangiocarcinoma presentan los peores pronósticos. En nuestro análisis, hemos confirmado que los pacientes con cáncer de páncreas y vías biliares presentan un número de fallecimientos claramente superior al esperado, lo que refleja una supervivencia global significativamente más baja en comparación con otros tipos tumorales como el cáncer de colon o recto.
+
+
+### Pregunta 3: ¿Qué diferencias en supervivencia se observan según el género y la edad de los pacientes?
+
+Antes de implementar el análisis de supervivencia por edades, es recomendable realizar la categorización de la variable `age_at_initial_pathologic_diagnosis` procurando una repartición
+equilibrada entre grupos.
+
+```{r}
+# Categorizar la variable age_at_initial_pathologic_diagnosis
+df_gastro$age_category <- cut(df_gastro$age_at_initial_pathologic_diagnosis,
+                       breaks = c(-Inf,59,69,79,Inf),
+                       labels = c("Personas_60-","Personas_60","Personas_70","Personas_80+"),
+                       include.lowest = FALSE)
+
+# Verificar distribución de categorias
+table(df_gastro$age_category)
+```
+
+```{r}
+# Distribucion de edades de pacientes por género
+ggplot(data=subset(df_gastro, !is.na(age_category)), aes(x= age_category, fill = gender))+   
+  geom_bar(position = "dodge", alpha = 0.7)+
+  labs(title= "Distribución de edades de pacientes por género", 
+       x= "Edad (años)",
+       y= "Frecuencia")+
+  theme(plot.title = element_text(size=16, color='Darkblue', face='bold', hjust = 0.5))
+```
+
+#### Estudios de supervivencia (Kaplan-Meier) 
+
+
+Los estudios de supervivencia de pacientes en función del género y la
+edad basados en el modelo Kaplan-Meier se muestran a continuación. Para
+su implementación se consultaron los siguientes recursos: [Survival
+analysis with low-dimensional input
+data](https://ocbe-uio.github.io/survomics/survomics.html#survival-analysis-with-low-dimensional-input-data),
+[Analysis of Cancer Genome Atlas in
+R](https://www.costalab.org/wp-content/uploads/2020/11/R_class_D3.html#5_Survival_Analysis)
+y [The R Book, 3rd Edition by Elinor Jones, Simon Harden, Michael J.
+Crawley, cap. 15 Survial
+Analysis](https://learning.oreilly.com/library/view/the-r-book/9781119634324/c15.xhtml#head-2-134).
+
+```{r}
+# Implementar Kaplan-Meier por género 
+# Crear objeto de supervivencia
+survival_obj <- Surv(time = df_gastro$os_time, event=df_gastro$os_event)
+
+# Ajustar el model Kaplan-Meier por género
+ajuste_genero <- survfit(survival_obj ~ gender, type="kaplan-meier", data=df_gastro)
+
+# Visualizar gráfico
+plot(ajuste_genero, ylab = "Probabilidad", xlab='Tiempo (días)',
+     mark.time = TRUE, col = hue_pal ()(2)[1:2], main= "Supervivencia en Función del Género")
+
+legend("bottomleft", legend = c("Female", "Male"),
+       fill = hue_pal ()(2)[1:2], bty = "n")
+```
+
+```{r}
+# Comparamos la supervivencia entre géneros
+comparar_generos <- survdiff(survival_obj ~ gender, data=df_gastro)
+comparar_generos
+```
+En relación a la supervivencia y el género, en el gráfico de Kaplan-Meier, la curva correspondiente a las mujeres alcanza un valor estable de aproximadamente 0.65 a los 1.800 días, lo que indica que alrededor del 65% de ellas sobreviven más allá de ese tiempo. En contraste, la curva de los hombres muestra una caída más prolongada, estabilizándose temporalmente en distintos puntos, y descendiendo hasta aproximadamente 0.35 a los 3.000 días. Esto implica que solo el 35% de los hombres alcanzan ese umbral temporal de supervivencia.  El test de log-rank (Chi² = 4.4, p = 0.04) respalda esta inspección visual, donde las diferencias observadas son estadísticamente significativas. Las mujeres tienen menos eventos (muertes) de los esperados, lo que sugiere una mejor evolución clínica en comparación con los hombres.
+
+```{r}
+# Implementar Kaplan-Meier por edad
+# Ajustar el model Kaplan-Meier por edad
+ajuste_edad <- survfit(survival_obj ~ age_category, type="kaplan-meier", data=df_gastro)
+
+# Visualizar gráfico
+plot(ajuste_edad, ylab = "Probabilidad", xlab='Tiempo (días)',
+     mark.time = TRUE, col = hue_pal ()(4)[1:4], main= "Superviviencia en Función de la Edad")
+
+legend("bottomleft", legend = c("Personas_60-","Personas_60","Personas_70","Personas_80+"),
+       fill = hue_pal ()(4)[1:4], bty = "n")
+```
+
+```{r}
+# Comparamos la supervivencia entre categorías de edades
+comparar_edades <- survdiff(survival_obj ~ age_category, data=df_gastro)
+comparar_edades
+```
+En relación a la supervivencia y la edad, en el gráfico de Kaplan-Meier, los grupos más jóvenes mantienen curvas de supervivencia más altas y sostenidas a lo largo del tiempo, mientras que las curvas de los mayores de 70 y 80 años muestran un descenso más pronunciado. El test de log-rank (Chi² = 17.8, gl = 3, p = 0.0005) confirma que entre los grupos etarios existen diferencias estadísticamente significativas. En particular, se observa que el grupo de mayores de 80 años tiene una mortalidad observada notablemente más alta que la esperada (32 observados vs 18.8 esperados). Por el contrario, el grupo de personas menores de 60 años presenta una mortalidad observada más baja que la esperada (51 vs 70.2), indicando una mejor supervivencia relativa.
+
+### Pregunta 4: ¿Cuál es el impacto de la invasión venosa, linfática o perineural sobre la supervivencia?
+
+```{r}
+# Reorganizar los datos 
+df_long <- df_gastro %>%
+  select(os_time, perineural_invasion_present, venous_invasion, lymphatic_invasion) %>%
+  pivot_longer(
+    cols = c(perineural_invasion_present, venous_invasion, lymphatic_invasion),
+    names_to = "tipo_invasion",
+    values_to = "presencia"
+  ) %>%
+  filter(!is.na(presencia))  
+
+# Crear el gráfico combinado
+ggplot(df_long, aes(x = presencia, y = os_time, fill = presencia)) +
+  geom_boxplot(color = "black") +
+  facet_wrap(~ tipo_invasion, scales = "free_x") +
+  labs(
+    title = "Supervivencia según tipo de invasión tumoral",
+    x = "Presencia de invasión",
+    y = "Supervivencia (días)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, color = 'Darkblue', face = 'bold', hjust = 0.5)
+  )
+```
+
+#### Estudios de supervivencia (Kaplan-Meier) 
+
+```{r}
+# Implementar Kaplan-Meier invásion venosa
+# Crear objeto de supervivencia
+survival_obj <- Surv(time = df_gastro$os_time, event=df_gastro$os_event)
+
+# Ajustar el model Kaplan-Meier por género
+ajuste_invasion_venosa<- survfit(survival_obj ~ venous_invasion, type="kaplan-meier", data=df_gastro)
+
+# Visualizar gráfico
+plot(ajuste_invasion_venosa, ylab = "Probabilidad", xlab='Tiempo (días)',
+     mark.time = TRUE, col = hue_pal ()(2)[1:2], main= "Supervivencia en función de la invásion venosa")
+
+legend("bottomleft", legend = c("Present", "Absent"),
+       fill = hue_pal ()(2)[1:2], bty = "n")
+
+```
+
+```{r}
+# Comparamos la supervivencia entre pacientes con o sin invásion
+comparar_invasion_venosa <- survdiff(survival_obj ~ venous_invasion, data=df_gastro)
+comparar_invasion_venosa
+```
+
+```{r}
+# Implementar Kaplan-Meier invasion perineural
+# Crear objeto de supervivencia
+survival_obj <- Surv(time = df_gastro$os_time, event=df_gastro$os_event)
+
+# Ajustar el model Kaplan-Meier por género
+ajuste_invasion_perineural<- survfit(survival_obj ~ perineural_invasion_present, type="kaplan-meier", data=df_gastro)
+
+# Visualizar gráfico
+plot(ajuste_invasion_perineural, ylab = "Probabilidad", xlab='Tiempo (días)',
+     mark.time = TRUE, col = hue_pal ()(2)[1:2], main= "Supervivencia en Función de la Invasión perineural")
+
+legend("bottomleft", legend = c("Present", "Absent"),
+       fill = hue_pal ()(2)[1:2], bty = "n")
+```
+```{r}
+# Comparamos la supervivencia entre los pacientes con y sin invasión perineural
+comparar_invasion_perineural <- survdiff(survival_obj ~ perineural_invasion_present, data=df_gastro)
+comparar_invasion_perineural
+```
+```{r}
+# Implementar Kaplan-Meier Invasión linfática
+# Crear objeto de supervivencia
+survival_obj <- Surv(time = df_gastro$os_time, event=df_gastro$os_event)
+
+# Ajustar el model Kaplan-Meier por género
+ajuste_invasion_linfatica<- survfit(survival_obj ~ lymphatic_invasion, type="kaplan-meier", data=df_gastro)
+
+# Visualizar gráfico
+plot(ajuste_invasion_linfatica, ylab = "Probabilidad", xlab='Tiempo (días)',
+     mark.time = TRUE, col = hue_pal ()(2)[1:2], main= "Supervivencia en Función de la Invasión Linfática")
+
+legend("bottomleft", legend = c("Present", "Absent"),
+       fill = hue_pal ()(2)[1:2], bty = "n")
+```
+```{r}
+# Comparamos la supervivencia entre los pacientes con y sin invasión perineural
+comparar_invasion_linfatica <- survdiff(survival_obj ~ lymphatic_invasion, data=df_gastro)
+comparar_invasion_linfatica
+```
+
+El análisis de supervivencia según variables histopatológicas reveló diferencias significativas asociadas a la presencia de invasión venosa, linfática y perineural. Estas tres características son conocidas por reflejar una mayor agresividad tumoral, y nuestros resultados lo confirmaron estadísticamente.
+
+En primer lugar, la invasión venosa mostró una asociación altamente significativa con la supervivencia (Chi-cuadrado = 20, p = 8e-06), con un número de fallecimientos muy superior al esperado en pacientes con invasión positiva. De forma similar, la invasión linfática también se relacionó con peor pronóstico (Chi-cuadrado = 10,3, p = 0,001), al observarse una mayor mortalidad en el grupo con invasión.
+
+Por último, la invasión perineural se asoció de forma significativa con una reducción en la supervivencia (Chi-cuadrado = 6,4, p = 0,01), aunque con una cohorte más limitada en tamaño.
+
+Estos resultados respaldan el valor clínico de estas variables como posibles marcadores pronósticos negativos en pacientes con cáncer gastrointestinal. Además, resaltan la importancia de incorporarlas en la estratificación del riesgo y en la toma de decisiones terapéuticas.
+
+## 3.2 Función personalizada y ejercicios de probabilidad
+
+### 3.2.1 Función personalizada
+
+El IMC (Índice de Masa Corporal) es un indicador ampliamente utilizado
+en oncología para evaluar riesgo metabólico, pronóstico y respuesta a
+tratamientos, conforme al punto de vista del grupo IARC en su reporte
+[Body Fatness and Cancer — Viewpoint of the IARC Working
+Group](https://www.nejm.org/doi/10.1056/NEJMsr1606602?url_ver=Z39.88-2003&rfr_id=ori:rid:crossref.org&rfr_dat=cr_pub%20%200www.ncbi.nlm.nih.gov).
+El IMC al momento del diagnóstico puede reflejar comorbilidades
+(diabetes, hipertensión) que pueden influir en la progresión del cáncer.
+Es por esto que hemos incluido el IMC como una variable clave para la
+estratificación de pacientes tomando como referencia las categorías
+propuestas por el NIH. Para más detalles, consultar [Obsedidad y
+Cáncer](https://www.cancer.gov/espanol/cancer/causas-prevencion/riesgo/obesidad/hoja-informativa-obesidad).
+
+```{r}
+# Función para calcular el IMC de un paciente 
+calcular_imc <- function(peso, altura){
+  imc <- peso / (altura/100)^2
+  return (imc)
+}
+
+# calcular_imc <- function(peso, altura){
+#   tryCatch(
+#     {
+#       # Convertir en valores numéricos por default
+#       #peso      <- as.numeric(peso)
+#       #altura    <- as.numeric(altura)
+#       
+#       # Validar rango de valores de entrada. 
+#       if(altura <= 0.0){
+#         stop("Error: La variable altura no debe ser negativa o cero")
+#       }
+#       
+#       imc <- peso / (altura^2)
+#       return(imc)
+#     },
+#     error = function(e){
+#         message("Error en el cálculo: ", e$message)
+#         return(NA)
+#     }
+#   )
+# }
+
+# Crear la variable imc_at_initial_pathologic_diagnosis
+df_gastro$imc <- calcular_imc(df_gastro$weight, df_gastro$height)
+
+# Categorizar la variable imc según las categorías propuestas por NIH
+df_gastro$imc_category <- cut(df_gastro$imc,
+                       breaks = c(-Inf,18.5,25.0,30.0,Inf),
+                       labels = c("Bajo_Peso","Normal","Sobrepeso","Obesidad"),
+                       include.lowest = FALSE)
+
+# Verificar distribución de categorias
+table(df_gastro$imc_category)
+```
+
+```{r}
+# Distribucion de IMC de pacientes por género
+ggplot(data=subset(df_gastro, !is.na(imc_category)), aes(x= imc_category, fill = gender))+   
+  geom_bar(position = "dodge", alpha = 0.7)+
+  labs(title= "Distribución de IMC de pacientes por género", 
+       x= "Edad (años)",
+       y= "Frecuencia")+
+  theme(plot.title = element_text(size=16, color='Darkblue', face='bold', hjust = 0.5))
+```
+
+### 3.2.2 Ejercicios de probabilidad
+
+Esta sección propone tres problemas de probabilidad relacionados al dataset TCGA. 
+
+**Ejercicio A**
+
+En el dataset TCGA personalizado (df_gastro), aproximadamente el 14.15% de los pacientes tienen cáncer de páncreas, esto conforme a la variable `cancer_type`. Si tomamos una muestra aleatoria de 100 pacientes:
+
+- ¿Cuál es la probabilidad de que exactamente 5 pacientes tengan cáncer de páncreas?
+
+- ¿Cuál es la probabilidad de que a lo más 10 pacientes tengan cáncer de páncreas?
+
+```{r}
+# Verificar distribución de categorias por tipo de cáncer
+frecuencias <- table(df_gastro$cancer_type)
+frecuencias
+
+# Verificar porcentaje de distribución de categorías por tipo de cáncer
+# porcentajes <- prop.table(frecuencias) * 100
+porcentajes <- round(prop.table(frecuencias) * 100, 2)
+porcentajes
+```
+```{r}
+# Describir datos para calcular P(X = 5)
+n <- 100
+p <- 0.1415
+x <- 5
+
+# Aplicar distribución binomial para P(X = 5)
+paciente_5 <- dbinom(x,n,p)
+
+print(paste("La probabilidad de que exactamente 5 pacientes tengan cáncer de páncreas es:",
+            round(paciente_5,4)*100,"%"))
+```
+
+```{r}
+# Describir datos para calcular P(X <= 10)
+n <- 100
+p <- 0.1415
+x <- 10
+
+# Aplicar distribución binomial para P(X <= 10)
+paciente_10 <- pbinom(x, n, p)
+
+print(paste("La probabilidad de que un máximo de 10 pacientes tengan cáncer de páncreas es:",
+            round(paciente_10, 4)*100,"%"))
+```
+
+
+**Ejercicio B**
+
+De los pacientes con invasión perineural ¿cuál es la probabilidad de que estos pacientes tengan un estadio patológico avanzado, igual o superior a tipo III?
+
+Este es un problema de probabilidad condicional donde se nos pide: 
+P(Estadio >= III | Invasión perineural = YES)
+
+```{r}
+# Visualizar variables categóricas de interés
+print("Distribución de categorías para la variable perineural_invasion_present")
+table(df_gastro$perineural_invasion_present)
+
+print("Distribución de categorías para la variable stage_event_pathologic_stage")
+table(df_gastro$stage_event_pathologic_stage)
+
+# Eliminar NAs en variables de interés y crear un nuevo dataframe 
+df_estate_peri <- df_gastro[!is.na(df_gastro$perineural_invasion_present) & 
+                      !is.na(df_gastro$stage_event_pathologic_stage), ]
+
+```
+Para estudiar la relación entre los grupos de variables categóricas, el siguiente paso es construir una tabla de contingencia de dimensión 14 x 2, donde se mostrarán los conteos para cada combinación invasion_perineural–estadio, resultando en 28 frecuencias observadas.
+
+```{r}
+# Crear tabla de contingencia 
+tabla_conti <- table(df_estate_peri$perineural_invasion_present,
+               df_estate_peri$stage_event_pathologic_stage)
+print("Tabla de contingencia de variables categóricas")
+tabla_conti
+
+# Calcular proporciones para cada grupo de pacientes con invasión perineural 
+prop_conti <- prop.table(tabla_conti, margin = 1)  # margin = 1 obtiene proporciones por fila
+print("Tabla de proporciones")
+prop_conti
+
+# Obtener la proporción solo para el grupo con invasión perineural = 'YES' y estadios > III
+print("Tabla de proporciones para pacientes con invasión perineural = 'YES' y estadios > III")
+prop_conti["YES", c("III", "IIIA", "IIIB", "IIIC", "IV", "IVA", "IVB")]
+
+# Obtener la probabilidad total conjunta
+prob_conjunta <- sum(prop_conti["YES", c("III", "IIIA", "IIIB", "IIIC", "IV", "IVA", "IVB")])
+paste("Probabilidad estadio igual o superior a tipo III:", round(prob_conjunta, 4)*100,"%")
+```
+
+**Ejercicio C**
+
+La edad media al diagnóstico es de 65.85 años con una desviación estándar de 11.88 años.
+Suponiendo una distribución normal, ¿cuál es la probabilidad de que un paciente tenga entre 60 y 70 años?
+
+En este problema utilizaremos la distribución normal para obtener P(60 < X < 70)
+
+```{r}
+# Describir datos para obtener P(60 < X < 70)
+media  <- mean(df_gastro$age_at_initial_pathologic_diagnosis, na.rm = TRUE)
+sigma  <- sd(df_gastro$age_at_initial_pathologic_diagnosis, na.rm = TRUE)
+x1     <- 60
+x2     <- 70
+
+# Aplicar distribución normal para obtener la probabilidad P(60 < X < 70)
+menor_a_70   <- pnorm(x2, media, sigma)
+menor_a_60   <- pnorm(x1, media, sigma)
+entre_70_60 <- menor_a_70 - menor_a_60
+
+print(paste("La probabilidad de que un paciente tenga entre 60 y 70 años es:",
+            round(entre_70_60, 4)*100,"%"))
+```
+
+------------------------------------------------------------------------
+
+# Sección 4: Modelos de aprendizaje automático
+
+Dado que nuestro objetivo es identificar factores asociados a la supervivencia de pacientes oncológicos, optamos por aplicar modelos de aprendizaje supervisado, ya que contamos con una variable dependiente bien definida: la supervivencia global (`os_event`).
+
+Entrenamos un modelo de aprendizaje supervisado utilizando Support Vector Machine (SVM). Para ello, seleccionamos un subconjunto de variables clínicas incluyendo edad al diagnóstico, género, tipo de tumor residual, estadio patológico, número de ganglios positivos, tipo de cáncer y presencia de invasión venosa, linfática o perineural.
+
+## Modelo supervisado (SVG)
+
+```{r}
+# Filtramos filas sin valores NA en variables clave
+model_df_supervised <- na.omit(df_gastro[, c("age_at_initial_pathologic_diagnosis",
+                                 "gender", "residual_tumor", "stage_event_pathologic_stage",
+                                "number_of_lymphnodes_positive_by_he",
+                                "cancer_type", 
+                                "venous_invasion", "lymphatic_invasion",
+                                "perineural_invasion_present",
+                                "os_event")])
+
+# Convertimos os_event en factor (para clasificación)
+model_df_supervised$os_event <- as.factor(model_df_supervised$os_event)
+
+# Dividimos el conjunto de datos en entrenamiento y prueba
+set.seed(123)  # Para reproducibilidad
+indices_entrenamiento <- sample(1:nrow(model_df_supervised), 0.5 * nrow(model_df_supervised))
+conjunto_entrenamiento <- model_df_supervised[indices_entrenamiento, ]
+conjunto_prueba <- model_df_supervised[-indices_entrenamiento, ]
+
+# Cargamos el paquete "kernlab" para SVM
+library(kernlab)
+
+# Entrenamos un modelo SVM
+modelo_svm <- ksvm(os_event ~ ., data = conjunto_entrenamiento, kernel = "rbfdot", type = "C-svc") #indicamos que el objetivo es clasificacion
+
+# Realizar predicciones en el conjunto de prueba
+predicciones <- predict(modelo_svm, newdata = conjunto_prueba)
+
+# Calcular la matriz de confusión
+confusion_matriz <- table(Real = conjunto_prueba$os_event, Predicción =
+predicciones)
+
+# Calcular la precisión
+precision <- sum(diag(confusion_matriz)) / sum(confusion_matriz)
+cat("Precisión del modelo SVM:", precision, "\n")
+
+# Mostrar la matriz de confusión
+confusion_matriz
+```
+
+**Preprocesamiento del conjunto de datos**
+
+Se filtraron las filas que presentaban valores NA en las variables seleccionadas. Además, se convirtió la variable `os_event` en un factor para permitir la clasificación. El conjunto resultante fue dividido aleatoriamente en dos subconjuntos: entrenamiento (50%) y prueba (50%).
+
+**Entrenamiento del modelo**
+
+Se utilizó la función `ksvm()` del paquete `kernlab` para entrenar un modelo SVM con kernel radial `rbfdot`. El modelo se ajustó utilizando los datos de entrenamiento y luego se evaluó su rendimiento sobre el conjunto de prueba.
+
+**Resultados**
+
+El modelo alcanzó una precisión del 93.5% en el conjunto de prueba. No obstante, la matriz de confusión revela que el modelo no logró clasificar correctamente a ningún paciente fallecido: todos los pacientes que murieron fueron clasificados como vivos. Esto indica que el modelo tiene un sesgo hacia la clase mayoritaria (pacientes vivos), probablemente debido a un fuerte desbalance en la distribución de los pacientes vivos/fallecidos. En otras palabras, aunque el modelo parece preciso en términos generales, su capacidad para detectar pacientes con peor pronóstico es nula. Para corregir este desbalance, haría falta añadir mas pacientes con peor pronóstico. 
+
+
+## Modelo no supervisado PCA
+
+En esta parte del trabajo usamos un modelo de aprendizaje no supervisado para explorar si los datos clínicos de los pacientes muestran algún patrón o agrupación natural, sin necesidad de decirle al modelo qué tiene que predecir. Para eso usamos un Análisis de Componentes Principales (PCA).
+
+```{r}
+# # Filtramos filas sin valores NA en variables clave
+model_df_unsupervised <- na.omit(df_gastro[, c("age_at_initial_pathologic_diagnosis",
+                                 "gender", "residual_tumor", "stage_event_pathologic_stage",
+                                "number_of_lymphnodes_positive_by_he",
+                                "cancer_type", 
+                                "venous_invasion", "lymphatic_invasion",
+                                "perineural_invasion_present")])
+ 
+# Transformamos las variables categoricas en numericas 
+# Ref. "The model.matrix function" The R Book page 255
+df_numeric <- model.matrix(~ gender + age_at_initial_pathologic_diagnosis + 
+                              residual_tumor + 
+                              number_of_lymphnodes_positive_by_he + 
+                              venous_invasion + 
+                              lymphatic_invasion + 
+                              perineural_invasion_present + 
+                              stage_event_pathologic_stage - 1, data = model_df_unsupervised)
+ 
+# Aplicamos PCA
+pca_resultado <- prcomp(df_numeric, center = TRUE)
+
+# Resumen de la varianza explicada por cada variable
+summary(pca_resultado)
+```
+
+
+```{r}
+# Representamos la varianza explicada por cada componente
+plot(pca_resultado)
+```
+
+
+```{r}
+cargos <- pca_resultado$rotation
+#print(cargos)
+```
+
+**Resultados PCA**
+
+El primer componente (PC1) explica el 87.5% de la varianza total del conjunto de datos, mientras que el segundo componente (PC2) añade un 11.2% adicional. En conjunto, PC1 y PC2 explican aproximadamente el 98.7% de la varianza total, lo que indica que la información principal de los datos puede resumirse eficazmente en dos dimensiones.
+
+El análisis de las cargas (loadings) reveló que:
+
+-  PC1 está fuertemente influido por la edad al diagnóstico, lo que sugiere que esta variable es la principal responsable de la variabilidad entre los pacientes.
+
+-  PC2 está dominado por el número de ganglios linfáticos positivos, seguido por una menor contribución de variables relacionadas con la invasión tumoral (linfática, venosa y perineural).
+
+```{r}
+# Realizamos agrupamiento jerárquico aglomerativo
+dist_matrix <- dist(df_numeric)
+# Aplicamos agrupamiento jerárquico aglomerativo con el método de Ward
+hc_aglomerativo <- hclust(dist_matrix, method = "ward.D2") 
+# Reprsentamos el dendrograma
+plot(hc_aglomerativo, main = "Dendrograma de Agrupamiento Jerárquico
+Aglomerativo", xlab = "Pacientes")
+```
+
+------------------------------------------------------------------------
+
+# Sección 5: Visualización con Shiny
+
+La aplicación Shiny fue desarrollada con el objetivo de permitir un
+análisis interactivo de datos clínicos de pacientes con cáncer
+gastrointestinal, utilizando un archivo CSV cargado por el usuario y un enfoque exploratorio y visual basado en el archivo `.Rmd`. El archivo `gastro_app.R`
+incluye el código fuente de la aplicación (el cual se adjunta en la
+entrega de la PEC4) y a continuación se muestran algunas capturas de
+pantalla para visualizar su funcionamento.\
+
+En términos generales, la aplicación incorpora transformaciones clave
+sobre el dataset, incluyendo el cálculo del tiempo de supervivencia
+(os_time), el evento de muerte (os_event) y el índice de masa corporal
+(IMC), a partir de variables como peso y altura. Además, se generan
+nuevas variables categóricas para la edad (age_category) y el IMC
+(imc_category), lo que facilita el análisis comparativo entre distintos
+grupos de pacientes.\
+
+![Vista general de la aplicación después de cargar el archivo de datos CSV](/Volumes/DataWinBackup/00_MASTER UOC BIOINFORMATICA - TEMPORAL/PROGRAMACION EN R LOCAL/SOFTWARE ANALISIS DE DATOS/PEC 4/PEC4_ShinnyApp/PEC4_Shiny1.png){width="50%" height="300px"}
+
+La aplicación contiene un panel lateral con selectores que permiten al usuario elegir variables para tres secciones principales:
+
+-   **Supervivencia según variables clínicas**: Aquí se muestra un gráfico
+    de tipo boxplot, en el cual se representa la relación entre una
+    variable categórica (como tipo de cáncer o estadio tumoral) y una
+    variable cuantitativa (por ejemplo, tiempo de supervivencia o edad).\
+    
+![Supervivencia según variables clínicas](/Volumes/DataWinBackup/00_MASTER UOC BIOINFORMATICA - TEMPORAL/PROGRAMACION EN R LOCAL/SOFTWARE ANALISIS DE DATOS/PEC 4/PEC4_ShinnyApp/PEC4_Shiny3.png){width="50%" height="300px"}   
+
+-   **Distribución de Edades e IMC**: A través de un gráfico de barras, 
+    se analiza la distribución de frecuencias de variables como la edad y el IMC,
+    estratificadas por género.\
+    
+![Distribución de Edades e IMC](/Volumes/DataWinBackup/00_MASTER UOC BIOINFORMATICA - TEMPORAL/PROGRAMACION EN R LOCAL/SOFTWARE ANALISIS DE DATOS/PEC 4/PEC4_ShinnyApp/PEC4_Shiny4.png){width="50%" height="300px"}
+
+-   **Análisis de Supervivencia Kaplan-Meier**: Utilizando la librería
+    survival, se ajusta un modelo Kaplan-Meier para evaluar la
+    probabilidad de supervivencia a lo largo del tiempo, según variables
+    seleccionadas como género o grupo etario.\
+    
+![Análisis de Supervivencia Kaplan-Meier](/Volumes/DataWinBackup/00_MASTER UOC BIOINFORMATICA - TEMPORAL/PROGRAMACION EN R LOCAL/SOFTWARE ANALISIS DE DATOS/PEC 4/PEC4_ShinnyApp/PEC4_Shiny5.png){width="50%" height="300px"}
+
+
+------------------------------------------------------------------------
+
+# Sección 6: Conclusiones
+
+El objetivo del proyecto fue analizar datos clínicos de pacientes con cáncer gastrointestinal obtenidos del repositorio público TCGA (The Cancer Genome Atlas), para estudiar posibles factores clínicos que influyen en la supervivencia de los pacientes. Del dataset de más de 1.300 casos: 1) Seleccionamos variables relevantes, limpiamos y trasformamos datos, 2) Creamos gráficos exploratorios y realizamos análisis estadísticos, 3) Implementamos análisis de supervivencia de Kaplan-Mier, 4) Entrenamos tanto un modelo supervisado (SVM) para predecir la supervivencia como uno no supervisado (PCA y clustering jerárquico) para explorar agrupamientos naturales entre pacientes e 5) Implementamos una aplicación en Shiny para facilitar la visualización interactiva de estos datos.
+
+A continuación se describen los principales hallazgos del análisis del TCGA dataset. Asimismo, se discuten limitaciones y áreas de oportunidad y se cierra con un comentario sobre la experiencia del trabajo en equipo para el desarrollo de este proyecto. 
+
+**Sobre los hallazgos más interesantes del análisis**
+
+-  Los resultados obtenidos con las pruebas paramétricas `ANOVA` y `TukeyHSD`, así como con las pruebas no paramétricas `Kruskal-Wallis` y `Dunn` confirmaron que existen diferencias estadísticamente significativas entre los tipos de cáncer gastrointestinal y los días de supervivencia para los siguientes grupos: Páncreas-Colon, Páncreas-Recto, Estómago-Colon y Stomágo-Recto. 
+    
+-  Los gráficos de Kaplan-Mier mostraron que las mujeres presentan una mayor supervivencia que los hombres ya que alrededor del 65% sobreviven más allá de 1.800 días, frente a la supervivencia del 35% de los hombres a los 3.000 días. El test de log-rank (p = 0.04) confirma que estas diferencias son estadísticamente significativas, sugiriendo una evolución clínica más favorable para las mujeres.
+
+-  Respecto a la edad, los pacientes más jóvenes presentan curvas de supervivencia más altas y sostenidas, mientras que las de los mayores de 70 y 80 años caen más rápido. El test de log-rank (p = 0.0005) presenta evidencia de que existen diferencias significativas entre grupos etarios. Esto es consistente con el hecho de que la edad avanzada se puede asociar a una mayor mortalidad y menor tolerancia a los tratamientos.
+
+-  Finalmente al analizar la probabilidad condicional, se observó que el 55.22% de los pacientes con invasión perineural presentaban un estadio patológico avanzado (tipo III o superior) al momento del diagnóstico. Esto sugiere una fuerte asociación entre la presencia de invasión perineural y un mayor grado de progresión tumoral.
+
+**Sobre las limitaciones de los datos y posibles mejoras o extensiones**
+
+Una de las principales limitaciones del análisis fue la alta proporción de datos faltantes, especialmente en variables categóricas como `venous_invasion`, `lymphatic_invasion` y `perineural_invasion_present`, así como en algunas variables continuas como `days_to_death`, `weight` y `height`. Esta situación redujo el tamaño efectivo de la muestra. Además, dado que se trata de un estudio observacional retrospectivo, es decir que los datos provienen de un repositorio existente y no de un diseño experimental controlado, fue posible identificar asociaciones, pero no establecer relaciones causales. Como mejora, podríamos aplicar técnicas de imputación para manejar los datos faltantes y validar los resultados con cohortes externas. Además, algunos estudios de ésta índole también incorporan datos genómicos para enriquecer el análisis y aportar una visión más integral de los factores que influyen en la supervivencia.
+
+**Sobre el trabajo en equipo y valoración del proyecto**
+
+Comentario de Salomón. El trabajo en equipo con Sefora fue clave para seleccionar el dataset, gracias a su experiencia en investigación oncológica. Esto nos ayudó a definir preguntas clave sobre cómo ciertas variables clínicas podrían afectar la supervivencia de los pacientes con cáncer gastrointestinal. Disfruté mucho de este proyecto porque me permitió aterrizar conceptos teóricos de una manera práctica con un dataset real. Creo que la colaboración fue efectiva pues dividimos tareas, mantuvimos buena comunicación y revisamos mutuamente nuestro trabajo. 
+
+Comentario de Sefora. El proyecto nos permitió aplicar múltiples herramientas de análisis de datos en R y profundizar en el estudio de la supervivencia en cáncer gastrointestinal que es el tema de mi investigación en el Vall d’Hebron Instituto de Oncología. Espero poder aplicar las mismas herramientas para analizar los datos de los pacientes de mi centro y avanzar en el conocimiento de estas devastadoras enfermedades. Fue un placer trabajar con Salomon, ya que tenemos enfoques y perspectivas complementarios que nos permitieron mejorar mutuamente nuestro trabajo. Tuvimos una buena comunicación y nos repartimos las tareas a partes iguales.
+
+
+
+
+
+
+
+
+
+
