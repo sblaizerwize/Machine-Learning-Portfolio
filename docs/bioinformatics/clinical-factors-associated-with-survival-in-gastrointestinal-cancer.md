@@ -1,6 +1,6 @@
 # Clinical Factors Associated with Survival in Gastrointestinal Cancer
 
-by Sefora Conti and Salomon Marquez
+by [Sefora Conti](https://es.linkedin.com/in/sefora-conti-6b313047) and [Salomon Marquez](https://www.linkedin.com/in/sblaizer/)
 
 15/06/2025 
 
@@ -14,7 +14,7 @@ In the present work, we analyze a publicly available clinical dataset from the [
 
 The data used are open access, anonymized, and their use for academic purposes is permitted under the policies of the [GDC Data Portal](https://gdc.cancer.gov/about-gdc/gdc-policies).
 
-Visit the :simple-github: repository of the project to check out:  
+Visit the :simple-github: [repository of the project](https://github.com/sblaizerwize/My-Professional-Portfolio/tree/main/docs/bioinformatics/clinical-factors-associated-with-survival-in-gastrointestinal-cancer) to check out:  
 - :fontawesome-solid-file-csv: TCGA data  
 - :octicons-code-16: R code  
 - :material-application-outline: Shiny application  
